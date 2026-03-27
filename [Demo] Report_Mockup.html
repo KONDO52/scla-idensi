@@ -1,0 +1,1619 @@
+<!DOCTYPE html>
+<!-- ═══════════════════════════════════════════════════════════════
+     SCL REQUEST PACKAGE  |  AIGENO Report Demo  (English Version)
+     ═══════════════════════════════════════════════════════════════
+     This HTML file is a demo mockup showing how the AIGENO genetic
+     report will be displayed to end users on a smartphone screen.
+
+     What to check in this demo:
+       • Overall report structure and visual layout
+       • 5 genetic risk category score cards
+       • Radar chart display
+       • Dietary, Lifestyle, and Exercise advice sections
+       • Pro Tips & Pitfalls section
+       • Content depth and word count expected per advice item
+
+     Notes:
+       • Sample data shown is Pattern P029 (4-category combined risk)
+       • System architecture diagram has been omitted from this demo
+       • Avatar/character UI has been omitted from this demo
+       • Advice text = 300-500 words per item (to be provided by SCL)
+
+     Questions? Contact the SCLA Japan team.
+     ═══════════════════════════════════════════════════════════════ -->
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIGENO - Your Genetic Report</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        navy: { 50: '#f0f3f9', 100: '#d9e0f0', 200: '#b3c1e0', 300: '#8da2d1', 400: '#6683c1', 500: '#1a2744', 600: '#162038', 700: '#111a2d', 800: '#0d1321', 900: '#080d16' },
+        gold: { 50: '#fdf9ef', 100: '#faf0d5', 200: '#f4dfaa', 300: '#eece7f', 400: '#e8bd54', 500: '#c9a84c', 600: '#a08640', 700: '#7a6730', 800: '#544720', 900: '#2e2710' },
+        zuboran: { 400: '#ff8c42', 500: '#ff6b1a', 600: '#e55a0a' }
+      }
+    }
+  }
+}
+</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=Playfair+Display:wght@700&display=swap');
+  body { font-family: 'Noto Sans JP', sans-serif; background: #f8f9fc; }
+  .font-display { font-family: 'Playfair Display', serif; }
+  .glass { background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+  .gradient-navy { background: linear-gradient(135deg, #1a2744 0%, #2a3f6e 50%, #1a2744 100%); }
+  .gradient-gold { background: linear-gradient(135deg, #e8bd54 0%, #c9a84c 50%, #e8bd54 100%); }
+  .shimmer { background: linear-gradient(110deg, transparent 20%, rgba(255,255,255,0.15) 50%, transparent 80%); background-size: 200% 100%; animation: shimmer 3s infinite; }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  @keyframes float { 0%,100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
+  .float { animation: float 3s ease-in-out infinite; }
+  @keyframes pulse-glow { 0%,100% { box-shadow: 0 0 20px rgba(255,107,26,0.3); } 50% { box-shadow: 0 0 40px rgba(255,107,26,0.6); } }
+  .pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+  .faq-answer { max-height: 0; overflow: hidden; transition: max-height 0.4s ease, padding 0.4s ease; }
+  .faq-answer.open { max-height: 500px; }
+  /* 5-level badge system */
+  .badge-low { background: linear-gradient(135deg, #10b981, #059669); }
+  .badge-slight { background: linear-gradient(135deg, #14b8a6, #0d9488); }
+  .badge-moderate { background: linear-gradient(135deg, #f59e0b, #d97706); }
+  .badge-high { background: linear-gradient(135deg, #f97316, #ea580c); }
+  .badge-veryhigh { background: linear-gradient(135deg, #ef4444, #dc2626); }
+  /* legacy compat */
+  .badge-mid { background: linear-gradient(135deg, #f59e0b, #d97706); }
+  .badge-normal { background: linear-gradient(135deg, #10b981, #059669); }
+  .card-hover { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+  .card-hover:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(26,39,68,0.12); }
+  .section-divider { height: 3px; background: linear-gradient(90deg, transparent, #e8bd54, transparent); }
+  /* Mermaid diagram custom */
+  .mermaid-section { background: #fff; border-radius: 16px; }
+  /* Detail analysis accordion */
+  .inout-answer { max-height: 0; overflow: hidden; transition: max-height 0.4s ease, padding 0.4s ease; }
+  .inout-answer.open { max-height: 2000px; }
+  .detail-answer { max-height: 0; overflow: hidden; transition: max-height 0.5s ease, padding 0.5s ease; }
+  .detail-answer.open { max-height: 2000px; }
+  .score-bar-track { height: 6px; background: #e5e7eb; border-radius: 999px; overflow: hidden; }
+  .score-bar-fill { height: 100%; border-radius: 999px; transition: width 0.6s ease; }
+  .risk-card-high { background: rgba(255, 237, 213, 0.35); border: 1px solid rgba(249, 115, 22, 0.15); }
+  .risk-card-veryhigh { background: rgba(254, 226, 226, 0.35); border: 1px solid rgba(239, 68, 68, 0.15); }
+  .risk-card-moderate { background: rgba(254, 243, 199, 0.35); border: 1px solid rgba(245, 158, 11, 0.15); }
+  .risk-card-slight { background: rgba(204, 251, 241, 0.35); border: 1px solid rgba(20, 184, 166, 0.15); }
+  .risk-card-low { background: rgba(209, 250, 229, 0.35); border: 1px solid rgba(16, 185, 129, 0.15); }
+  .risk-card-mid { background: rgba(254, 243, 199, 0.35); border: 1px solid rgba(245, 158, 11, 0.15); }
+  .risk-card-normal { background: rgba(209, 250, 229, 0.35); border: 1px solid rgba(16, 185, 129, 0.15); }
+  /* About section collapsible */
+  .about-answer { max-height: 0; overflow: hidden; transition: max-height 0.5s ease, padding 0.5s ease; }
+  .about-answer.open { max-height: 1000px; }
+</style>
+</head>
+<body class="min-h-screen">
+
+
+
+<!-- ============================== -->
+<!-- Introduction: About Genetic Testing -->
+<!-- ============================== -->
+<section class="max-w-md mx-auto px-4 pt-4 pb-2">
+  <div class="glass rounded-2xl shadow-lg overflow-hidden card-hover">
+    <button onclick="toggleAbout(this)" class="w-full flex items-center justify-between p-4 text-left">
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-lg gradient-navy flex items-center justify-center"><i class="fa-solid fa-book-open text-gold-400 text-xs"></i></div>
+        <span class="text-sm font-black text-navy-500">Introduction: About Genetic Testing</span>
+      </div>
+      <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0"></i>
+    </button>
+    <div class="about-answer">
+      <div class="px-4 pb-4">
+        <div class="bg-navy-50/50 rounded-xl p-4">
+          <p class="text-xs text-gray-600 leading-relaxed mb-3">
+            This report presents the results of analyzing DNA extracted from your saliva, comprehensively evaluating multiple genetic polymorphisms (SNPs) associated with weight management and metabolism.
+          </p>
+          <p class="text-xs text-gray-600 leading-relaxed mb-3">
+            The <span class="font-bold text-navy-500">Polygenic Score</span> quantifies the cumulative impact of multiple gene variants rather than a single gene. For each category, the risk allele status of multiple related genes is integrated and calculated as a score from 0 to 100.
+          </p>
+          <p class="text-xs text-gray-600 leading-relaxed mb-3">
+            A higher score indicates a greater tendency to be influenced by genetic factors in that category. However, genetic tendencies can be modulated by lifestyle and environmental factors, and this is not a definitive diagnosis.
+          </p>
+          <p class="text-xs text-gray-600 leading-relaxed">
+            Use the information in this report to understand your genetic characteristics and optimize your dietary habits, lifestyle, and exercise routines.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider max-w-md mx-auto mb-2 mt-4"></div>
+
+<!-- ============================== -->
+<!-- メインレポート画面 -->
+<!-- ============================== -->
+<main class="max-w-md mx-auto px-4 pb-20">
+
+  <!-- ヘッダーバー -->
+  <header class="gradient-navy rounded-b-2xl px-5 py-4 mb-6 shadow-xl relative overflow-hidden">
+    <div class="shimmer absolute inset-0"></div>
+    <div class="relative z-10 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg gradient-gold flex items-center justify-center">
+          <span class="text-navy-800 font-black text-xs font-display">Ai</span>
+        </div>
+        <div>
+          <span class="text-gold-300 font-bold text-sm tracking-widest">AIGENO</span>
+          <span class="text-white/40 text-[10px] ml-1">by SCL AIOMICS</span>
+        </div>
+      </div>
+      <div class="text-white/60 text-xs"><i class="fa-solid fa-dna mr-1"></i>Gene Report</div>
+    </div>
+  </header>
+
+  <!-- ========================================= -->
+  <!-- 1. アバター＆基本ステータス（Hero） -->
+  <!-- ========================================= -->
+  <section class="relative mb-8">
+    <!-- Avatar -->
+    <div class="flex justify-center mb-4">
+      <div class="relative">
+        <div class="w-32 h-32 rounded-full shadow-2xl ring-4 ring-gold-400/40 float overflow-hidden bg-white">
+          <div class="w-64 h-32" style="margin-left: 0;">
+            <img src="img/avatar.png" alt="Your Avatar" class="w-full h-full object-cover object-left" style="object-position: 25% center;">
+          </div>
+        </div>
+        <!-- Overall Score Badge -->
+        <div class="absolute -bottom-1 -right-1 bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg border-2 border-white">
+          72%
+        </div>
+      </div>
+    </div>
+
+    <!-- タイプ名 -->
+    <div class="text-center mb-5">
+      <h1 class="text-lg font-black text-navy-500 mb-1 leading-snug">
+        Broad Combined Genetic Risk:<br>Energy Metabolism, Appetite &amp; Inflammation
+      </h1>
+      <p class="text-[10px] text-gray-400 font-medium mt-1">Pattern P029 ｜ Carbohydrate Metabolism × Protein Utilization × Satiety × Inflammation</p>
+    </div>
+
+    <!-- 総合太りやすさバー -->
+    <div class="glass rounded-2xl p-4 shadow-lg mb-5 card-hover">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-bold text-navy-500"><i class="fa-solid fa-triangle-exclamation text-orange-500 mr-1"></i>Overall Weight Gain Tendency</span>
+        <span class="text-lg font-black text-orange-500">72<span class="text-xs font-bold">%</span></span>
+      </div>
+      <div class="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+        <div class="h-full rounded-full bg-gradient-to-r from-teal-400 via-amber-400 via-orange-500 to-red-500" style="width: 72%"></div>
+      </div>
+      <div class="flex justify-between mt-1 text-[9px] text-gray-400">
+        <span>Low</span><span>Slight</span><span>Moderate</span><span>High</span><span>Very High</span>
+      </div>
+    </div>
+
+    <!-- 基礎代謝（BMR）＋TDEE誘導 -->
+    <div class="glass rounded-xl p-3 shadow-md mb-2 card-hover">
+      <div class="flex items-center justify-between mb-1">
+        <div class="flex items-center gap-1.5">
+          <div class="w-6 h-6 rounded-lg bg-blue-50 flex items-center justify-center"><i class="fa-solid fa-fire-flame-curved text-blue-500 text-xs"></i></div>
+          <span class="text-[11px] font-bold text-navy-500">Estimated Basal Metabolic Rate (BMR)</span>
+        </div>
+        <span class="text-sm font-black text-navy-500">1,800 <span class="text-[10px] font-bold text-gray-400">kcal/day</span></span>
+      </div>
+      <p class="text-[9px] text-gray-400 ml-8 leading-relaxed">Estimated value based on the Harris-Benedict equation (Male, 85kg, 178cm, 49 y.o.)</p>
+    </div>
+    <!-- TDEE誘導カード -->
+    <div class="bg-gradient-to-r from-zuboran-500/5 to-orange-50 rounded-xl p-3 shadow-sm mb-4 border border-orange-100">
+      <div class="flex items-start gap-2">
+        <div class="w-5 h-5 rounded-full bg-zuboran-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <i class="fa-solid fa-bolt text-zuboran-500 text-[9px]"></i>
+        </div>
+        <div>
+          <p class="text-[10px] text-gray-600 leading-relaxed">
+            <span class="font-bold text-navy-500">BMR (Basal Metabolic Rate)</span> is the calories your body burns at rest. To lose weight, you need to calculate your <span class="font-bold text-zuboran-500">TDEE (Total Daily Energy Expenditure)</span>, which accounts for your activity level.
+          </p>
+          <p class="text-[9px] text-zuboran-500 font-bold mt-1"><i class="fa-solid fa-arrow-right mr-1"></i>TDEE is automatically calculated and updated daily in the Lazy Diet App.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5指標バッジ -->
+    <div class="grid grid-cols-2 gap-2.5">
+      <div class="glass rounded-xl p-3 shadow-md card-hover">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-1.5">
+            <div class="w-6 h-6 rounded-lg bg-orange-50 flex items-center justify-center"><i class="fa-solid fa-cubes-stacked text-orange-500 text-xs"></i></div>
+            <span class="text-[11px] font-bold text-navy-500">Carbohydrate Metabolism</span>
+          </div>
+          <span class="badge-high text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">High</span>
+        </div>
+        <div class="text-[9px] text-gray-400 text-right mt-1">Score: 82</div>
+      </div>
+      <div class="glass rounded-xl p-3 shadow-md card-hover">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-1.5">
+            <div class="w-6 h-6 rounded-lg bg-teal-50 flex items-center justify-center"><i class="fa-solid fa-droplet text-teal-500 text-xs"></i></div>
+            <span class="text-[11px] font-bold text-navy-500">Fat Storage</span>
+          </div>
+          <span class="badge-slight text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">Slight</span>
+        </div>
+        <div class="text-[9px] text-gray-400 text-right mt-1">Score: 40</div>
+      </div>
+      <div class="glass rounded-xl p-3 shadow-md card-hover">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-1.5">
+            <div class="w-6 h-6 rounded-lg bg-teal-50 flex items-center justify-center"><i class="fa-solid fa-drumstick-bite text-teal-500 text-xs"></i></div>
+            <span class="text-[11px] font-bold text-navy-500">Protein Utilization</span>
+          </div>
+          <span class="badge-slight text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">Slight</span>
+        </div>
+        <div class="text-[9px] text-gray-400 text-right mt-1">Score: 33</div>
+      </div>
+      <div class="glass rounded-xl p-3 shadow-md card-hover">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-1.5">
+            <div class="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center"><i class="fa-solid fa-fire text-amber-500 text-xs"></i></div>
+            <span class="text-[11px] font-bold text-navy-500">Inflammation Susceptibility</span>
+          </div>
+          <span class="badge-moderate text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">Moderate</span>
+        </div>
+        <div class="text-[9px] text-gray-400 text-right mt-1">Score: 61</div>
+      </div>
+      <div class="glass rounded-xl p-3 shadow-md col-span-2 card-hover">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-1.5">
+            <div class="w-6 h-6 rounded-lg bg-orange-50 flex items-center justify-center"><i class="fa-solid fa-utensils text-orange-500 text-xs"></i></div>
+            <span class="text-[11px] font-bold text-navy-500">Satiety / Appetite Regulation</span>
+          </div>
+          <span class="badge-high text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">High</span>
+        </div>
+        <div class="text-[9px] text-gray-400 text-right mt-1">Score: 76</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider mb-8"></div>
+
+  <!-- ========================================= -->
+  <!-- 2. レーダーチャート＆複合リスク解説 -->
+  <!-- ========================================= -->
+  <section class="mb-8">
+    <h2 class="flex items-center gap-2 text-base font-black text-navy-500 mb-4">
+      <div class="w-7 h-7 rounded-lg gradient-navy flex items-center justify-center"><i class="fa-solid fa-chart-radar text-gold-400 text-xs"></i></div>
+      Genetic Risk Analysis
+    </h2>
+
+    <div class="glass rounded-2xl p-5 shadow-lg mb-5 card-hover">
+      <div class="mx-auto" style="max-width: 280px;">
+        <canvas id="radarChart"></canvas>
+      </div>
+    </div>
+
+    <div class="glass rounded-2xl p-5 shadow-lg card-hover">
+      <div class="flex items-start gap-3">
+        <div class="w-10 h-10 rounded-xl gradient-gold flex items-center justify-center flex-shrink-0 mt-0.5">
+          <i class="fa-solid fa-dna text-navy-700 text-sm"></i>
+        </div>
+        <div>
+          <h3 class="text-sm font-bold text-navy-500 mb-2">Polygenic Test: Overall Findings</h3>
+          <p class="text-xs text-gray-600 leading-relaxed">
+            Your polygenic test results show <span class="font-bold text-navy-500">genetic tendencies related to carbohydrate metabolism and satiety regulation</span>. You are particularly susceptible to influences from carbohydrate intake and appetite control, making <span class="font-bold text-navy-500">dietary and lifestyle adjustments</span> important for weight management. Fat storage and protein utilization show relatively mild tendencies, while inflammation susceptibility shows a moderate risk level. Based on these overall genetic tendencies, it is recommended to use the following advice to optimize your daily life.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider mb-8"></div>
+
+  <!-- ========================================= -->
+  <!-- 2.5. 5 Genetic Risk Categories: Detailed Analysis -->
+  <!-- ========================================= -->
+  <section class="mb-8">
+    <h2 class="flex items-center gap-2 text-base font-black text-navy-500 mb-4">
+      <div class="w-7 h-7 rounded-lg gradient-navy flex items-center justify-center"><i class="fa-solid fa-dna text-gold-400 text-xs"></i></div>
+      5 Genetic Risk Categories: Detailed Analysis
+    </h2>
+
+    <!-- 🔴 高リスク群（要注意） -->
+    <div class="mb-2">
+      <div class="flex items-center gap-2 mb-3 px-1">
+        <span class="text-[10px] font-black text-red-600 bg-red-50 px-2.5 py-1 rounded-full border border-red-200"><i class="fa-solid fa-triangle-exclamation mr-1"></i>High-Risk Categories</span>
+        <div class="flex-1 h-px bg-red-100"></div>
+      </div>
+      <div class="space-y-3">
+
+      <!-- ① 糖質代謝 [High: 82] -->
+      <div class="rounded-2xl shadow-md overflow-hidden card-hover risk-card-high">
+        <button onclick="toggleDetail(this)" class="w-full flex items-center justify-between p-4 text-left">
+          <div class="flex items-center gap-3 flex-1 min-w-0">
+            <div class="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center flex-shrink-0">
+              <i class="fa-solid fa-cubes-stacked text-orange-500 text-sm"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-xs font-bold text-navy-500">Carbohydrate Metabolism</span>
+                <span class="badge-high text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">High</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="score-bar-track flex-1">
+                  <div class="score-bar-fill bg-gradient-to-r from-amber-400 to-orange-500" style="width: 82%"></div>
+                </div>
+                <span class="text-[10px] font-bold text-orange-500">82</span>
+              </div>
+              <span class="text-[9px] text-gray-400">Polygenic Score</span>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0 ml-2"></i>
+        </button>
+        <div class="detail-answer">
+          <div class="px-4 pb-4">
+            <div class="bg-orange-50 rounded-xl p-3 mb-3">
+              <h4 class="text-xs font-bold text-orange-700 mb-2"><i class="fa-solid fa-microscope mr-1"></i>Genetic Tendency: Carbohydrate Metabolism</h4>
+              <p class="text-[11px] text-gray-600 leading-relaxed mb-2">
+                Analysis of multiple genetic polymorphisms related to carbohydrate metabolism reveals a genetic tendency affecting insulin sensitivity and blood glucose regulation. Variants in insulin secretion-related genes (TCF7L2, KCNQ1) and glucose uptake-related genes (PPARG, SLC2A2) indicate a tendency for a larger blood glucose response after carbohydrate intake. Choosing low-GI foods and optimizing meal order are considered effective approaches to suppress sharp post-meal blood glucose spikes.
+              </p>
+              <div class="flex flex-wrap gap-1 mt-2">
+                <span class="text-[9px] bg-white/80 text-navy-500 font-bold px-1.5 py-0.5 rounded">TCF7L2</span>
+                <span class="text-[9px] bg-white/80 text-navy-500 font-bold px-1.5 py-0.5 rounded">KCNQ1</span>
+                <span class="text-[9px] bg-white/80 text-navy-500 font-bold px-1.5 py-0.5 rounded">PPARG</span>
+                <span class="text-[9px] bg-white/80 text-navy-500 font-bold px-1.5 py-0.5 rounded">SLC2A2</span>
+                <span class="text-[9px] bg-white/80 text-navy-500 font-bold px-1.5 py-0.5 rounded">GCK</span>
+                <span class="text-[9px] bg-white/80 text-navy-500 font-bold px-1.5 py-0.5 rounded">FTO</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ② 満腹感/食欲制御 [High: 76] -->
+      <div class="rounded-2xl shadow-md overflow-hidden card-hover risk-card-high">
+        <button onclick="toggleDetail(this)" class="w-full flex items-center justify-between p-4 text-left">
+          <div class="flex items-center gap-3 flex-1 min-w-0">
+            <div class="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center flex-shrink-0">
+              <i class="fa-solid fa-utensils text-orange-500 text-sm"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-xs font-bold text-navy-500">Satiety / Appetite Regulation</span>
+                <span class="badge-high text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">High</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="score-bar-track flex-1">
+                  <div class="score-bar-fill bg-gradient-to-r from-amber-400 to-orange-500" style="width: 76%"></div>
+                </div>
+                <span class="text-[10px] font-bold text-orange-500">76</span>
+              </div>
+              <span class="text-[9px] text-gray-400">Polygenic Score</span>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0 ml-2"></i>
+        </button>
+        <div class="detail-answer">
+          <div class="px-4 pb-4">
+            <div class="bg-orange-50 rounded-xl p-3 mb-3">
+              <h4 class="text-xs font-bold text-orange-700 mb-2"><i class="fa-solid fa-microscope mr-1"></i>Genetic Tendency: Satiety / Appetite Regulation</h4>
+              <p class="text-[11px] text-gray-600 leading-relaxed mb-2">
+                Analysis of appetite regulation genes reveals a genetic tendency affecting satiety signal transmission. Variants were confirmed in appetite center genes (FTO, MC4R) and satiety hormone genes (LEP, LEPR), indicating a tendency for post-meal satisfaction to fade quickly. Splitting meals into smaller portions and consuming dietary fiber and protein first are recommended strategies to extend the duration of satiety.
+              </p>
+              <div class="flex flex-wrap gap-1 mt-2">
+                <span class="text-[9px] bg-white/80 text-navy-500 font-bold px-1.5 py-0.5 rounded">FTO</span>
+                <span class="text-[9px] bg-white/80 text-navy-500 font-bold px-1.5 py-0.5 rounded">MC4R</span>
+                <span class="text-[9px] bg-white/80 text-navy-500 font-bold px-1.5 py-0.5 rounded">LEP</span>
+                <span class="text-[9px] bg-white/80 text-navy-500 font-bold px-1.5 py-0.5 rounded">LEPR</span>
+                <span class="text-[9px] bg-white/80 text-navy-500 font-bold px-1.5 py-0.5 rounded">NPY</span>
+                <span class="text-[9px] bg-white/80 text-navy-500 font-bold px-1.5 py-0.5 rounded">GHRL</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      </div>
+    </div>
+
+    <!-- 🟢 低〜中リスク群（良好） -->
+    <div class="mt-5">
+      <div class="flex items-center gap-2 mb-3 px-1">
+        <span class="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200"><i class="fa-solid fa-circle-check mr-1"></i>Low-Risk Categories</span>
+        <div class="flex-1 h-px bg-emerald-100"></div>
+      </div>
+      <div class="space-y-3">
+
+      <!-- ③ 炎症感受性 [Moderate: 61] -->
+      <div class="rounded-2xl shadow-md overflow-hidden card-hover risk-card-moderate">
+        <button onclick="toggleDetail(this)" class="w-full flex items-center justify-between p-4 text-left">
+          <div class="flex items-center gap-3 flex-1 min-w-0">
+            <div class="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+              <i class="fa-solid fa-fire text-amber-500 text-sm"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-xs font-bold text-navy-500">Inflammation Susceptibility</span>
+                <span class="badge-moderate text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">Moderate</span>
+                <span class="text-[8px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-200">No Issues</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="score-bar-track flex-1">
+                  <div class="score-bar-fill bg-gradient-to-r from-yellow-300 to-amber-500" style="width: 61%"></div>
+                </div>
+                <span class="text-[10px] font-bold text-amber-600">61</span>
+              </div>
+              <span class="text-[9px] text-gray-400">Polygenic Score</span>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0 ml-2"></i>
+        </button>
+        <div class="detail-answer">
+          <div class="px-4 pb-4">
+            <div class="bg-amber-50 rounded-xl p-3 mb-3">
+              <h4 class="text-xs font-bold text-amber-700 mb-2"><i class="fa-solid fa-microscope mr-1"></i>Genetic Tendency: Inflammation Susceptibility</h4>
+              <p class="text-[11px] text-gray-600 leading-relaxed mb-2">
+                A moderate genetic tendency was identified among genes associated with inflammatory response. Polymorphisms were confirmed in inflammatory cytokine genes (IL6, TNF) and inflammation marker genes (CRP, APOE). Since chronic low-grade inflammation may contribute to insulin resistance, it is recommended to actively consume anti-inflammatory foods (fatty fish, vegetables, fermented foods) and maintain moderate exercise habits.
+              </p>
+              <div class="flex flex-wrap gap-1 mt-2">
+                <span class="text-[9px] bg-white/80 text-navy-500 font-bold px-1.5 py-0.5 rounded">IL6</span>
+                <span class="text-[9px] bg-white/80 text-navy-500 font-bold px-1.5 py-0.5 rounded">TNF</span>
+                <span class="text-[9px] bg-white/80 text-navy-500 font-bold px-1.5 py-0.5 rounded">CRP</span>
+                <span class="text-[9px] bg-white/80 text-navy-500 font-bold px-1.5 py-0.5 rounded">APOE</span>
+                <span class="text-[9px] bg-white/80 text-navy-500 font-bold px-1.5 py-0.5 rounded">PPARG</span>
+                <span class="text-[9px] bg-white/80 text-navy-500 font-bold px-1.5 py-0.5 rounded">UCP2</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ④ 脂肪蓄積 [Slight: 40] -->
+      <div class="rounded-2xl shadow-md overflow-hidden card-hover risk-card-slight">
+        <button onclick="toggleDetail(this)" class="w-full flex items-center justify-between p-4 text-left">
+          <div class="flex items-center gap-3 flex-1 min-w-0">
+            <div class="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center flex-shrink-0">
+              <i class="fa-solid fa-droplet text-teal-500 text-sm"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-xs font-bold text-navy-500">Fat Storage</span>
+                <span class="badge-slight text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">Slight</span>
+                <span class="text-[8px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-200">Good</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="score-bar-track flex-1">
+                  <div class="score-bar-fill bg-gradient-to-r from-teal-300 to-teal-500" style="width: 40%"></div>
+                </div>
+                <span class="text-[10px] font-bold text-teal-600">40</span>
+              </div>
+              <span class="text-[9px] text-gray-400">Polygenic Score</span>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0 ml-2"></i>
+        </button>
+        <div class="detail-answer">
+          <div class="px-4 pb-4">
+            <div class="bg-teal-50 rounded-xl p-3 mb-3">
+              <h4 class="text-xs font-bold text-teal-700 mb-2"><i class="fa-solid fa-microscope mr-1"></i>Genetic Tendency: Fat Storage</h4>
+              <p class="text-[11px] text-gray-600 leading-relaxed mb-2">
+                Analysis of fat storage-related genes reveals a relatively mild genetic tendency. Slight influences on thermogenesis genes (UCP1, ADRB3) were noted, but overall fat storage risk is within a manageable range. Since basal metabolic rate may tend to decrease slightly, establishing regular aerobic exercise habits is effective for preventing fat accumulation.
+              </p>
+              <div class="flex flex-wrap gap-1 mt-2">
+                <span class="text-[9px] bg-white/80 text-navy-500 font-bold px-1.5 py-0.5 rounded">FTO</span>
+                <span class="text-[9px] bg-white/80 text-navy-500 font-bold px-1.5 py-0.5 rounded">UCP1</span>
+                <span class="text-[9px] bg-white/80 text-navy-500 font-bold px-1.5 py-0.5 rounded">ADRB3</span>
+                <span class="text-[9px] bg-white/80 text-navy-500 font-bold px-1.5 py-0.5 rounded">PPARG</span>
+                <span class="text-[9px] bg-white/80 text-navy-500 font-bold px-1.5 py-0.5 rounded">APOA2</span>
+                <span class="text-[9px] bg-white/80 text-navy-500 font-bold px-1.5 py-0.5 rounded">FABP2</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ⑤ タンパク質利用 [Slight: 33] -->
+      <div class="rounded-2xl shadow-md overflow-hidden card-hover risk-card-slight">
+        <button onclick="toggleDetail(this)" class="w-full flex items-center justify-between p-4 text-left">
+          <div class="flex items-center gap-3 flex-1 min-w-0">
+            <div class="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center flex-shrink-0">
+              <i class="fa-solid fa-drumstick-bite text-teal-500 text-sm"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-xs font-bold text-navy-500">Protein Utilization</span>
+                <span class="badge-slight text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">Slight</span>
+                <span class="text-[8px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-200">Good</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="score-bar-track flex-1">
+                  <div class="score-bar-fill bg-gradient-to-r from-teal-300 to-teal-500" style="width: 33%"></div>
+                </div>
+                <span class="text-[10px] font-bold text-teal-600">33</span>
+              </div>
+              <span class="text-[9px] text-gray-400">Polygenic Score</span>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0 ml-2"></i>
+        </button>
+        <div class="detail-answer">
+          <div class="px-4 pb-4">
+            <div class="bg-teal-50 rounded-xl p-3 mb-3">
+              <h4 class="text-xs font-bold text-teal-700 mb-2"><i class="fa-solid fa-microscope mr-1"></i>Genetic Tendency: Protein Utilization</h4>
+              <p class="text-[11px] text-gray-600 leading-relaxed mb-2">
+                A mild influence was confirmed among genes related to protein utilization efficiency. Polymorphisms in muscle fiber genes (ACTN3, MSTN) and growth factor/nutrient receptor genes (IGF1, VDR) were identified, but their overall impact on protein utilization efficiency is limited. Maintaining appropriate protein intake and combining it with Vitamin D and B vitamins can optimize utilization efficiency.
+              </p>
+              <div class="flex flex-wrap gap-1 mt-2">
+                <span class="text-[9px] bg-white/80 text-navy-500 font-bold px-1.5 py-0.5 rounded">ACTN3</span>
+                <span class="text-[9px] bg-white/80 text-navy-500 font-bold px-1.5 py-0.5 rounded">MSTN</span>
+                <span class="text-[9px] bg-white/80 text-navy-500 font-bold px-1.5 py-0.5 rounded">IGF1</span>
+                <span class="text-[9px] bg-white/80 text-navy-500 font-bold px-1.5 py-0.5 rounded">IGF2</span>
+                <span class="text-[9px] bg-white/80 text-navy-500 font-bold px-1.5 py-0.5 rounded">ADRB2</span>
+                <span class="text-[9px] bg-white/80 text-navy-500 font-bold px-1.5 py-0.5 rounded">VDR</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider mb-8"></div>
+
+  <!-- ========================================= -->
+  <!-- 3. 食生活アドバイス (DANGER items only) -->
+  <!-- ========================================= -->
+  <section class="mb-8">
+    <div class="flex items-center gap-3 mb-1">
+      <div class="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center shadow"><i class="fa-solid fa-utensils text-white text-sm"></i></div>
+      <div>
+        <h2 class="text-base font-black text-navy-500">Dietary Advice</h2>
+        <p class="text-[10px] text-gray-400">Dietary optimization based on your genetic tendencies</p>
+      </div>
+    </div>
+    <p class="text-xs text-gray-500 mb-4 ml-12">Key dietary improvements based on your genetic tendencies in carbohydrate metabolism and appetite control.</p>
+
+    <div class="space-y-2.5">
+      <!-- DANGER group header -->
+      <div class="flex items-center gap-2 mb-3 px-1"><span class="text-[10px] font-black text-red-600 bg-red-50 px-2.5 py-1 rounded-full border border-red-200"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Needs Improvement</span><div class="flex-1 h-px bg-red-100"></div></div>
+
+      <!-- 食生活-3 DANGER: 糖質摂取のバランス -->
+      <div class="glass rounded-2xl shadow-md overflow-hidden card-hover border-l-4 border-red-400">
+        <button onclick="toggleInOut(this)" class="w-full flex items-center justify-between p-4 text-left">
+          <span class="text-xs font-bold text-navy-500 pr-2">3. Balancing Carbohydrate Intake</span>
+          <span class="text-[8px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full border border-red-200 flex-shrink-0">Needs Improvement</span>
+          <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0" style="transform: rotate(180deg)"></i>
+        </button>
+        <div class="inout-answer open">
+          <div class="px-4 pb-4">
+            <div class="rounded-xl overflow-hidden mb-3 shadow-sm">
+              <img src="img/food-bowl.jpg" alt="Healthy meal bowl" class="w-full h-36 object-cover" loading="lazy">
+            </div>
+            <div class="bg-red-50/40 rounded-xl p-3 mb-3">
+              <h4 class="text-[11px] font-bold text-red-700 mb-2"><i class="fa-solid fa-wheat-awn mr-1"></i>Carbs: "Quality" and "Timing" Matter More Than "Quantity"</h4>
+              <p class="text-xs text-gray-600 leading-relaxed mb-3">For those with high carbohydrate metabolism risk, "quality" and "timing" matter more than "quantity." Extreme carb restriction (under 50g/day) causes ketosis — while weight drops short-term, it leads to muscle loss, lower basal metabolism, and is the #1 cause of rebound. Carriers of the TCF7L2 risk allele tend to have delayed first-phase insulin secretion, making low-GI food choices key. White rice has a GI of 84, while brown rice drops to 56 and mixed barley rice to ~50. Swapping white bread (GI 95) for whole wheat bread (GI 50) can suppress post-meal glucose peaks by ~40%, according to studies.</p>
+              <div class="bg-white rounded-lg p-2.5 border border-red-100">
+                <p class="text-[10px] font-bold text-navy-500 mb-1"><i class="fa-solid fa-bullseye text-red-500 mr-1"></i>Key Point</p>
+                <p class="text-[10px] text-gray-600 leading-relaxed">Don't eliminate carbs — replace "white carbs" with "brown carbs." Aim for foods with a GI of 55 or below.</p>
+              </div>
+            </div>
+            <div class="bg-gray-50 rounded-xl p-3 mb-2">
+              <p class="text-[10px] font-bold text-navy-500 mb-2"><i class="fa-solid fa-list-check mr-1"></i>Action Steps</p>
+              <div class="space-y-2">
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">1</span>
+                  <p class="text-[10px] text-gray-600">Gradually switch white rice to brown rice or barley rice</p>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">2</span>
+                  <p class="text-[10px] text-gray-600">Choose whole grain bread and noodles</p>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">3</span>
+                  <p class="text-[10px] text-gray-600">Aim for 40-60g of carbohydrates per meal (about 3/4 cup of cooked rice)</p>
+                </div>
+              </div>
+            </div>
+            <p class="text-[10px] text-red-600 font-bold"><i class="fa-solid fa-dna mr-1"></i>Related genes: TCF7L2, KCNQ1, SLC2A2 (Carbohydrate Metabolism [High])</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 食生活-4 DANGER: 主食・おかず配分の調整 -->
+      <div class="glass rounded-2xl shadow-md overflow-hidden card-hover border-l-4 border-red-400">
+        <button onclick="toggleInOut(this)" class="w-full flex items-center justify-between p-4 text-left">
+          <span class="text-xs font-bold text-navy-500 pr-2">4. Adjusting Staple/Side Dish Ratio</span>
+          <span class="text-[8px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full border border-red-200 flex-shrink-0">Needs Improvement</span>
+          <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0" style="transform: rotate(180deg)"></i>
+        </button>
+        <div class="inout-answer open">
+          <div class="px-4 pb-4">
+            <div class="rounded-xl overflow-hidden mb-3 shadow-sm">
+              <img src="img/rice-plate.jpg" alt="Rice and side dish portions" class="w-full h-36 object-cover" loading="lazy">
+            </div>
+            <div class="bg-red-50/40 rounded-xl p-3 mb-3">
+              <h4 class="text-[11px] font-bold text-red-700 mb-2"><i class="fa-solid fa-plate-wheat mr-1"></i>Ideal PFC Balance and Plate Proportions</h4>
+              <p class="text-xs text-gray-600 leading-relaxed mb-3">The ideal PFC balance for those with high carbohydrate metabolism risk differs from the general guideline (C:60%, P:15%, F:25%). Based on your genetic tendencies, limiting carbohydrates to 40–45% of total calories, with protein at 25–30% and fat at 25–30%, is recommended. Specifically, limit rice to about 150g (approx. 55g carbs) and ensure adequate protein and quality fats in your side dishes. A "plate model" following the Japanese one-soup-three-dishes style, with protein (palm-sized serving of meat/fish) as the main dish and two vegetable sides for fiber and vitamins, works best.</p>
+              <div class="bg-white rounded-lg p-2.5 border border-red-100">
+                <p class="text-[10px] font-bold text-navy-500 mb-1"><i class="fa-solid fa-bullseye text-red-500 mr-1"></i>Key Point</p>
+                <p class="text-[10px] text-gray-600 leading-relaxed">Divide your plate into 4: (1) Protein (1/4), (2) Vegetables (2/4), (3) Carbohydrates (1/4). Following this ratio naturally balances your PFC intake.</p>
+              </div>
+            </div>
+            <div class="bg-gray-50 rounded-xl p-3 mb-2">
+              <p class="text-[10px] font-bold text-navy-500 mb-2"><i class="fa-solid fa-list-check mr-1"></i>Action Steps</p>
+              <div class="space-y-2">
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">1</span>
+                  <p class="text-[10px] text-gray-600">Mentally divide your plate into 4 sections at each meal</p>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">2</span>
+                  <p class="text-[10px] text-gray-600">Fill half your plate with vegetables first</p>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">3</span>
+                  <p class="text-[10px] text-gray-600">Allocate 1/4 for protein and 1/4 for carbohydrates</p>
+                </div>
+              </div>
+            </div>
+            <p class="text-[10px] text-red-600 font-bold"><i class="fa-solid fa-dna mr-1"></i>Related genes: TCF7L2, PPARG (Carb Metabolism [High], Protein Utilization [Slight])</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 食生活-5 DANGER: 食事順序の工夫 -->
+      <div class="glass rounded-2xl shadow-md overflow-hidden card-hover border-l-4 border-red-400">
+        <button onclick="toggleInOut(this)" class="w-full flex items-center justify-between p-4 text-left">
+          <span class="text-xs font-bold text-navy-500 pr-2">5. Optimizing Meal Order</span>
+          <span class="text-[8px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full border border-red-200 flex-shrink-0">Needs Improvement</span>
+          <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0" style="transform: rotate(180deg)"></i>
+        </button>
+        <div class="inout-answer open">
+          <div class="px-4 pb-4">
+            <div class="rounded-xl overflow-hidden mb-3 shadow-sm">
+              <img src="img/japanese-food.jpg" alt="Japanese meal eating order" class="w-full h-36 object-cover" loading="lazy">
+            </div>
+            <div class="bg-red-50/40 rounded-xl p-3 mb-3">
+              <h4 class="text-[11px] font-bold text-red-700 mb-2"><i class="fa-solid fa-arrow-down-1-9 mr-1"></i>Veggie-First &amp; Carbs-Last Strategy</h4>
+              <p class="text-xs text-gray-600 leading-relaxed mb-3">Simply changing the order of eating dramatically alters post-meal blood glucose patterns. Research from the Kansai Electric Power Medical Research Institute found that eating in the order of vegetables → protein → carbohydrates reduced post-meal blood glucose peaks by ~40% and insulin secretion by ~30% compared to eating carbohydrates first. For those with high carbohydrate metabolism risk, this "Veggie-First & Carbs-Last" strategy is the most evidence-based dietary method to improve blood glucose control without medication. Since satiety risk is also high, filling the stomach with fiber and protein first naturally reduces the amount consumed by the time you reach carbohydrates.</p>
+              <div class="bg-white rounded-lg p-2.5 border border-red-100">
+                <p class="text-[10px] font-bold text-navy-500 mb-1"><i class="fa-solid fa-bullseye text-red-500 mr-1"></i>Key Point</p>
+                <p class="text-[10px] text-gray-600 leading-relaxed">The golden rule of eating order: (1) Soup (warm up the stomach) → (2) Vegetables &amp; mushrooms → (3) Meat, fish, eggs → (4) Rice, bread, noodles last</p>
+              </div>
+            </div>
+            <div class="bg-gray-50 rounded-xl p-3 mb-2">
+              <p class="text-[10px] font-bold text-navy-500 mb-2"><i class="fa-solid fa-list-check mr-1"></i>Action Steps</p>
+              <div class="space-y-2">
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">1</span>
+                  <p class="text-[10px] text-gray-600">Start with miso soup or broth (3 min)</p>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">2</span>
+                  <p class="text-[10px] text-gray-600">Eat salad or simmered vegetables (5 min)</p>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">3</span>
+                  <p class="text-[10px] text-gray-600">Eat the main dish (protein), then finally start on rice or bread</p>
+                </div>
+              </div>
+            </div>
+            <p class="text-[10px] text-red-600 font-bold"><i class="fa-solid fa-dna mr-1"></i>Related genes: TCF7L2, GCK (Carb Metabolism [High], Satiety [High])</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 食生活-8 DANGER: 間食・補食の最適化 -->
+      <div class="glass rounded-2xl shadow-md overflow-hidden card-hover border-l-4 border-red-400">
+        <button onclick="toggleInOut(this)" class="w-full flex items-center justify-between p-4 text-left">
+          <span class="text-xs font-bold text-navy-500 pr-2">8. Optimizing Snacks &amp; Supplemental Meals</span>
+          <span class="text-[8px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full border border-red-200 flex-shrink-0">Needs Improvement</span>
+          <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0" style="transform: rotate(180deg)"></i>
+        </button>
+        <div class="inout-answer open">
+          <div class="px-4 pb-4">
+            <div class="rounded-xl overflow-hidden mb-3 shadow-sm">
+              <img src="img/healthy-snacks.jpg" alt="Nuts and healthy snacks" class="w-full h-36 object-cover" loading="lazy">
+            </div>
+            <div class="bg-red-50/40 rounded-xl p-3 mb-3">
+              <h4 class="text-[11px] font-bold text-red-700 mb-2"><i class="fa-solid fa-cookie-bite mr-1"></i>Planned Snacking to Prevent Binge Eating</h4>
+              <p class="text-xs text-gray-600 leading-relaxed mb-3">For those with high satiety/appetite regulation risk, "cutting out snacks" backfires. When meal gaps exceed 5 hours, ghrelin (hunger hormone) spikes sharply, leading to overeating at the next meal. Since leptin (satiety hormone) signaling is genetically weak, once you enter "starving mode," it's hard to stop. Instead, incorporating planned snacks (150-200 kcal) twice a day stabilizes blood sugar and prevents binge eating. The "quality" of snacks matters most. Choose high-protein, low-carb options (boiled eggs, 20g nuts, Greek yogurt, cheese) to stimulate GLP-1 secretion and maintain satiety until the next meal.</p>
+              <div class="bg-white rounded-lg p-2.5 border border-red-100">
+                <p class="text-[10px] font-bold text-navy-500 mb-1"><i class="fa-solid fa-bullseye text-red-500 mr-1"></i>Key Point</p>
+                <p class="text-[10px] text-gray-600 leading-relaxed">Snacks aren't the enemy of restraint — they're your ally against binge eating. Plan high-protein snacks at 10 AM and 3 PM.</p>
+              </div>
+            </div>
+            <div class="bg-gray-50 rounded-xl p-3 mb-2">
+              <p class="text-[10px] font-bold text-navy-500 mb-2"><i class="fa-solid fa-list-check mr-1"></i>Action Steps</p>
+              <div class="space-y-2">
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">1</span>
+                  <p class="text-[10px] text-gray-600">Schedule snack time at 10 AM and 3 PM</p>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">2</span>
+                  <p class="text-[10px] text-gray-600">Choose from: boiled eggs, nuts, or yogurt</p>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">3</span>
+                  <p class="text-[10px] text-gray-600">Keep each snack under 150-200 kcal</p>
+                </div>
+              </div>
+            </div>
+            <p class="text-[10px] text-red-600 font-bold"><i class="fa-solid fa-dna mr-1"></i>Related genes: MC4R, LEP, LEPR (Satiety [High], Carb Metabolism [High])</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary card for SAFE items -->
+      <div class="mt-4 bg-emerald-50/60 rounded-xl p-3 border border-emerald-200">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-circle-check text-emerald-500 text-sm"></i>
+          <div>
+            <p class="text-[11px] font-bold text-emerald-700">Other categories are in good condition</p>
+            <p class="text-[9px] text-gray-500">For items related to fat storage, protein utilization, and inflammation susceptibility, maintain your current lifestyle habits.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider mb-8"></div>
+
+  <!-- ========================================= -->
+  <!-- 4. ライフスタイルアドバイス (DANGER items only) -->
+  <!-- ========================================= -->
+  <section class="mb-8">
+    <div class="flex items-center gap-3 mb-1">
+      <div class="w-9 h-9 rounded-xl bg-blue-500 flex items-center justify-center shadow"><i class="fa-solid fa-person-walking text-white text-sm"></i></div>
+      <div>
+        <h2 class="text-base font-black text-navy-500">Lifestyle Advice</h2>
+        <p class="text-[10px] text-gray-400">Lifestyle optimization based on your genetic tendencies</p>
+      </div>
+    </div>
+    <p class="text-xs text-gray-500 mb-4 ml-12">Key lifestyle improvements to enhance metabolic efficiency and health management.</p>
+
+    <div class="space-y-2.5">
+      <!-- DANGER group header -->
+      <div class="flex items-center gap-2 mb-3 px-1"><span class="text-[10px] font-black text-red-600 bg-red-50 px-2.5 py-1 rounded-full border border-red-200"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Needs Improvement</span><div class="flex-1 h-px bg-red-100"></div></div>
+
+      <!-- ライフスタイル-1 DANGER: 有酸素運動 -->
+      <div class="glass rounded-2xl shadow-md overflow-hidden card-hover border-l-4 border-red-400">
+        <button onclick="toggleInOut(this)" class="w-full flex items-center justify-between p-4 text-left">
+          <span class="text-xs font-bold text-navy-500 pr-2">1. Aerobic Exercise</span>
+          <span class="text-[8px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full border border-red-200 flex-shrink-0">Needs Improvement</span>
+          <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0" style="transform: rotate(180deg)"></i>
+        </button>
+        <div class="inout-answer open">
+          <div class="px-4 pb-4">
+            <div class="rounded-xl overflow-hidden mb-3 shadow-sm">
+              <img src="img/walking.jpg" alt="Walking exercise" class="w-full h-36 object-cover" loading="lazy">
+            </div>
+            <div class="bg-red-50/40 rounded-xl p-3 mb-3">
+              <h4 class="text-[11px] font-bold text-red-700 mb-2"><i class="fa-solid fa-person-walking mr-1"></i>Post-Meal Walking for Blood Sugar Control</h4>
+              <p class="text-xs text-gray-600 leading-relaxed mb-3">For those with high carbohydrate metabolism risk, aerobic exercise is the most powerful tool for blood sugar control. During exercise, muscles activate "GLUT4 translocation" — absorbing glucose without depending on insulin — directly compensating for the genetic tendency of weak insulin secretion. Most effective is walking within 30 minutes after a meal (15-20 minutes). This suppresses the post-meal glucose peak by ~25%, burning excess glucose as energy before it converts to fat. Maintaining moderate-intensity aerobic exercise 3-4 times/week, 30 minutes per session (a pace where you can still hold a conversation), has been reported to improve insulin sensitivity by ~20%.</p>
+              <div class="bg-white rounded-lg p-2.5 border border-red-100">
+                <p class="text-[10px] font-bold text-navy-500 mb-1"><i class="fa-solid fa-bullseye text-red-500 mr-1"></i>Key Point</p>
+                <p class="text-[10px] text-gray-600 leading-relaxed">The most effective timing is "within 30 minutes after eating." No workout clothes needed — just 15 minutes of walking nearby.</p>
+              </div>
+            </div>
+            <div class="bg-gray-50 rounded-xl p-3 mb-2">
+              <p class="text-[10px] font-bold text-navy-500 mb-2"><i class="fa-solid fa-list-check mr-1"></i>Action Steps</p>
+              <div class="space-y-2">
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">1</span>
+                  <p class="text-[10px] text-gray-600">Make it a habit to take a 15-minute walk after lunch</p>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">2</span>
+                  <p class="text-[10px] text-gray-600">Extend weekend walks to 30 minutes</p>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">3</span>
+                  <p class="text-[10px] text-gray-600">Once comfortable, establish a habit of 3-4 times per week</p>
+                </div>
+              </div>
+            </div>
+            <p class="text-[10px] text-red-600 font-bold"><i class="fa-solid fa-dna mr-1"></i>Related genes: TCF7L2, SLC2A2 (Carb Metabolism [High], Fat Storage [Slight])</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ライフスタイル-2 DANGER: 筋力トレーニング -->
+      <div class="glass rounded-2xl shadow-md overflow-hidden card-hover border-l-4 border-red-400">
+        <button onclick="toggleInOut(this)" class="w-full flex items-center justify-between p-4 text-left">
+          <span class="text-xs font-bold text-navy-500 pr-2">2. Strength Training</span>
+          <span class="text-[8px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full border border-red-200 flex-shrink-0">Needs Improvement</span>
+          <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0" style="transform: rotate(180deg)"></i>
+        </button>
+        <div class="inout-answer open">
+          <div class="px-4 pb-4">
+            <div class="rounded-xl overflow-hidden mb-3 shadow-sm">
+              <img src="img/gym.jpg" alt="Gym training" class="w-full h-36 object-cover" loading="lazy">
+            </div>
+            <div class="bg-red-50/40 rounded-xl p-3 mb-3">
+              <h4 class="text-[11px] font-bold text-red-700 mb-2"><i class="fa-solid fa-dumbbell mr-1"></i>Muscles Are the Body's Largest "Glucose Storage"</h4>
+              <p class="text-xs text-gray-600 leading-relaxed mb-3">Muscles are the body's largest "glucose storage." Each 1kg increase in muscle mass raises resting glucose uptake by ~50 kcal/day and boosts basal metabolism by ~13 kcal/day. For those with high carbohydrate metabolism risk, strength training is the most fundamental strategy to "expand the reservoir for consumed carbs." The quadriceps (front thigh) and gluteus maximus (buttocks) are the largest muscle groups, and training them dramatically improves glucose processing capacity. Bodyweight training is sufficient — just 3 exercises (squats, lunges, calf raises), 10 reps × 2 sets, 2-3 times/week has been shown to improve insulin sensitivity by ~25% after 12 weeks.</p>
+              <div class="bg-white rounded-lg p-2.5 border border-red-100">
+                <p class="text-[10px] font-bold text-navy-500 mb-1"><i class="fa-solid fa-bullseye text-red-500 mr-1"></i>Key Point</p>
+                <p class="text-[10px] text-gray-600 leading-relaxed">Train your "thighs" and "glutes" to expand your carb reservoir. Start with squats: 10 reps × 2 sets.</p>
+              </div>
+            </div>
+            <div class="bg-gray-50 rounded-xl p-3 mb-2">
+              <p class="text-[10px] font-bold text-navy-500 mb-2"><i class="fa-solid fa-list-check mr-1"></i>Action Steps</p>
+              <div class="space-y-2">
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">1</span>
+                  <p class="text-[10px] text-gray-600">10 squats × 2 sets (before morning tooth brushing)</p>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">2</span>
+                  <p class="text-[10px] text-gray-600">Lunges (5 reps each leg × 2 sets)</p>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">3</span>
+                  <p class="text-[10px] text-gray-600">Target 2-3 times/week; increase reps as you get comfortable</p>
+                </div>
+              </div>
+            </div>
+            <p class="text-[10px] text-red-600 font-bold"><i class="fa-solid fa-dna mr-1"></i>Related genes: ACTN3, MSTN (Protein Utilization [Slight], Carb Metabolism [High])</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ライフスタイル-4 DANGER: 睡眠 -->
+      <div class="glass rounded-2xl shadow-md overflow-hidden card-hover border-l-4 border-red-400">
+        <button onclick="toggleInOut(this)" class="w-full flex items-center justify-between p-4 text-left">
+          <span class="text-xs font-bold text-navy-500 pr-2">4. Sleep Quality</span>
+          <span class="text-[8px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full border border-red-200 flex-shrink-0">Needs Improvement</span>
+          <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0" style="transform: rotate(180deg)"></i>
+        </button>
+        <div class="inout-answer open">
+          <div class="px-4 pb-4">
+            <div class="rounded-xl overflow-hidden mb-3 shadow-sm">
+              <img src="img/sleep.jpg" alt="Quality sleep" class="w-full h-36 object-cover" loading="lazy">
+            </div>
+            <div class="bg-red-50/40 rounded-xl p-3 mb-3">
+              <h4 class="text-[11px] font-bold text-red-700 mb-2"><i class="fa-solid fa-moon mr-1"></i>Sleep Deprivation: The Most Dangerous Appetite Stimulant</h4>
+              <p class="text-xs text-gray-600 leading-relaxed mb-3">For those with high satiety risk, sleep deprivation is "the most dangerous appetite stimulant." Research shows that just one night of poor sleep (4 hours) increases ghrelin (hunger hormone) by 28% and decreases leptin (satiety hormone) by 18%. For those already genetically predisposed to weak leptin signaling, this results in an average of 385 kcal extra calories consumed the next day — equivalent to ~1.5 kg of weight gain per month if sustained. Moreover, sleep deprivation reduces prefrontal cortex function, making it harder to suppress impulsive eating behaviors (binging, sugar cravings). Securing 7-8 hours of quality sleep is the highest priority task, even above dietary management and exercise.</p>
+              <div class="bg-white rounded-lg p-2.5 border border-red-100">
+                <p class="text-[10px] font-bold text-navy-500 mb-1"><i class="fa-solid fa-bullseye text-red-500 mr-1"></i>Key Point</p>
+                <p class="text-[10px] text-gray-600 leading-relaxed">Less than 7 hours sleep is equivalent to "eating 2 extra rice balls (385kcal) every day." Strictly aim to be in bed by 11 PM.</p>
+              </div>
+            </div>
+            <div class="bg-gray-50 rounded-xl p-3 mb-2">
+              <p class="text-[10px] font-bold text-navy-500 mb-2"><i class="fa-solid fa-list-check mr-1"></i>Action Steps</p>
+              <div class="space-y-2">
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">1</span>
+                  <p class="text-[10px] text-gray-600">Set a fixed bedtime of 11 PM</p>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">2</span>
+                  <p class="text-[10px] text-gray-600">Switch phone to Night Mode 1 hour before bed</p>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">3</span>
+                  <p class="text-[10px] text-gray-600">Keep bedroom temperature at 18-20°C (64-68°F)</p>
+                </div>
+              </div>
+            </div>
+            <p class="text-[10px] text-red-600 font-bold"><i class="fa-solid fa-dna mr-1"></i>Related genes: LEP, LEPR, MC4R (Satiety [High], Inflammation [Moderate])</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ライフスタイル-6 DANGER: ストレス管理 -->
+      <div class="glass rounded-2xl shadow-md overflow-hidden card-hover border-l-4 border-red-400">
+        <button onclick="toggleInOut(this)" class="w-full flex items-center justify-between p-4 text-left">
+          <span class="text-xs font-bold text-navy-500 pr-2">6. Stress Management</span>
+          <span class="text-[8px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full border border-red-200 flex-shrink-0">Needs Improvement</span>
+          <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0" style="transform: rotate(180deg)"></i>
+        </button>
+        <div class="inout-answer open">
+          <div class="px-4 pb-4">
+            <div class="rounded-xl overflow-hidden mb-3 shadow-sm">
+              <img src="img/meditation.jpg" alt="Meditation and stress management" class="w-full h-36 object-cover" loading="lazy">
+            </div>
+            <div class="bg-red-50/40 rounded-xl p-3 mb-3">
+              <h4 class="text-[11px] font-bold text-red-700 mb-2"><i class="fa-solid fa-brain mr-1"></i>Stress is "Invisible Carbohydrates"</h4>
+              <p class="text-xs text-gray-600 leading-relaxed mb-3">The stress hormone (cortisol) negatively affects both carbohydrate metabolism and appetite control. When cortisol rises, glucose release from the liver is promoted (gluconeogenesis) and insulin sensitivity decreases. Simultaneously, it stimulates the reward system and increases cravings for high-calorie foods — triggering emotional eating. Those with high satiety risk have a genetic tendency to be particularly susceptible to stress-induced appetite increase, making stress management as important as dietary management. Research shows that just 5 minutes of deep breathing per day (4-7-8 technique: inhale 4s, hold 7s, exhale 8s) can reduce cortisol levels by ~15%.</p>
+              <div class="bg-white rounded-lg p-2.5 border border-red-100">
+                <p class="text-[10px] font-bold text-navy-500 mb-1"><i class="fa-solid fa-bullseye text-red-500 mr-1"></i>Key Point</p>
+                <p class="text-[10px] text-gray-600 leading-relaxed">Stress is "invisible carbs." Practice the 4-7-8 breathing technique 3 times a day (morning, noon, before bed) to prevent appetite surges.</p>
+              </div>
+            </div>
+            <div class="bg-gray-50 rounded-xl p-3 mb-2">
+              <p class="text-[10px] font-bold text-navy-500 mb-2"><i class="fa-solid fa-list-check mr-1"></i>Action Steps</p>
+              <div class="space-y-2">
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">1</span>
+                  <p class="text-[10px] text-gray-600">Practice 4-7-8 breathing right after waking up (5 minutes)</p>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">2</span>
+                  <p class="text-[10px] text-gray-600">Do one set before lunch as well</p>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">3</span>
+                  <p class="text-[10px] text-gray-600">Practice in bed before sleeping</p>
+                </div>
+              </div>
+            </div>
+            <p class="text-[10px] text-red-600 font-bold"><i class="fa-solid fa-dna mr-1"></i>Related genes: IL6, TNF (Inflammation [Moderate], Satiety [High])</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ライフスタイル-7 DANGER: 生活リズム -->
+      <div class="glass rounded-2xl shadow-md overflow-hidden card-hover border-l-4 border-red-400">
+        <button onclick="toggleInOut(this)" class="w-full flex items-center justify-between p-4 text-left">
+          <span class="text-xs font-bold text-navy-500 pr-2">7. Daily Routine &amp; Circadian Rhythm</span>
+          <span class="text-[8px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full border border-red-200 flex-shrink-0">Needs Improvement</span>
+          <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0" style="transform: rotate(180deg)"></i>
+        </button>
+        <div class="inout-answer open">
+          <div class="px-4 pb-4">
+            <div class="rounded-xl overflow-hidden mb-3 shadow-sm">
+              <img src="img/clock.jpg" alt="Clock and daily rhythm" class="w-full h-36 object-cover" loading="lazy">
+            </div>
+            <div class="bg-red-50/40 rounded-xl p-3 mb-3">
+              <h4 class="text-[11px] font-bold text-red-700 mb-2"><i class="fa-solid fa-clock mr-1"></i>The Tight Connection Between Body Clock and Metabolism</h4>
+              <p class="text-xs text-gray-600 leading-relaxed mb-3">The body clock (circadian rhythm) and metabolic function are tightly linked. Irregular meal times disrupt the pancreas's insulin secretion rhythm, and research shows the same food can cause up to 2x the blood glucose rise. Late-night eating (after 9 PM) is particularly detrimental for those with high carbohydrate metabolism risk, as melatonin reduces insulin sensitivity to ~50% of daytime levels. Eating breakfast at the same time every day resets the body clock and optimizes metabolic efficiency. The ideal meal schedule is breakfast at 7 AM, lunch at 12 PM, dinner at 6 PM (5-hour intervals).</p>
+              <div class="bg-white rounded-lg p-2.5 border border-red-100">
+                <p class="text-[10px] font-bold text-navy-500 mb-1"><i class="fa-solid fa-bullseye text-red-500 mr-1"></i>Key Point</p>
+                <p class="text-[10px] text-gray-600 leading-relaxed">Finish dinner by 7 PM. The body's carb-processing capacity at night is only half of what it is during the day.</p>
+              </div>
+            </div>
+            <div class="bg-gray-50 rounded-xl p-3 mb-2">
+              <p class="text-[10px] font-bold text-navy-500 mb-2"><i class="fa-solid fa-list-check mr-1"></i>Action Steps</p>
+              <div class="space-y-2">
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">1</span>
+                  <p class="text-[10px] text-gray-600">Fix your breakfast time to the same time every day</p>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">2</span>
+                  <p class="text-[10px] text-gray-600">Finish dinner by 7 PM</p>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">3</span>
+                  <p class="text-[10px] text-gray-600">Completely avoid snacking after dinner</p>
+                </div>
+              </div>
+            </div>
+            <p class="text-[10px] text-red-600 font-bold"><i class="fa-solid fa-dna mr-1"></i>Related genes: TCF7L2, KCNQ1 (Carbohydrate Metabolism [High])</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary card for SAFE items -->
+      <div class="mt-4 bg-emerald-50/60 rounded-xl p-3 border border-emerald-200">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-circle-check text-emerald-500 text-sm"></i>
+          <div>
+            <p class="text-[11px] font-bold text-emerald-700">Other categories are in good condition</p>
+            <p class="text-[9px] text-gray-500">For items related to fat storage, protein utilization, and inflammation susceptibility, maintain your current lifestyle habits.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider mb-8"></div>
+
+  <!-- ========================================= -->
+  <!-- 5. 運動アドバイス (DANGER items only) -->
+  <!-- ========================================= -->
+  <section class="mb-8">
+    <div class="flex items-center gap-3 mb-1">
+      <div class="w-9 h-9 rounded-xl bg-violet-500 flex items-center justify-center shadow"><i class="fa-solid fa-dumbbell text-white text-sm"></i></div>
+      <div>
+        <h2 class="text-base font-black text-navy-500">Exercise Advice</h2>
+        <p class="text-[10px] text-gray-400">Exercise program based on your genetic tendencies</p>
+      </div>
+    </div>
+    <p class="text-xs text-gray-500 mb-4 ml-12">Practical exercise tips effective for metabolic improvement and weight management.</p>
+
+    <div class="space-y-2.5">
+      <!-- DANGER group header -->
+      <div class="flex items-center gap-2 mb-3 px-1"><span class="text-[10px] font-black text-red-600 bg-red-50 px-2.5 py-1 rounded-full border border-red-200"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Needs Improvement</span><div class="flex-1 h-px bg-red-100"></div></div>
+
+      <!-- 運動-1 DANGER: 有酸素運動（脂肪燃焼） -->
+      <div class="glass rounded-2xl shadow-md overflow-hidden card-hover border-l-4 border-red-400">
+        <button onclick="toggleInOut(this)" class="w-full flex items-center justify-between p-4 text-left">
+          <span class="text-xs font-bold text-navy-500 pr-2">1. Aerobic Exercise (Fat Burning)</span>
+          <span class="text-[8px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full border border-red-200 flex-shrink-0">Needs Improvement</span>
+          <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0" style="transform: rotate(180deg)"></i>
+        </button>
+        <div class="inout-answer open">
+          <div class="px-4 pb-4">
+            <div class="rounded-xl overflow-hidden mb-3 shadow-sm">
+              <img src="img/running.jpg" alt="Running for fat burning" class="w-full h-36 object-cover" loading="lazy">
+            </div>
+            <div class="bg-red-50/40 rounded-xl p-3 mb-3">
+              <h4 class="text-[11px] font-bold text-red-700 mb-2"><i class="fa-solid fa-fire-flame-curved mr-1"></i>Efficient Fat Burning in the Fat-Burn Zone</h4>
+              <p class="text-xs text-gray-600 leading-relaxed mb-3">The key to maximizing fat burning is "intensity" and "timing." Exercising at 60-70% of maximum heart rate (fat-burn zone) uses fat most efficiently as an energy source. Formula: (220 - age) × 0.6-0.7; for a 49-year-old, the target is 103-120 bpm. 30 minutes of walking in this zone burns approx. 150-200 kcal of fat. Post-meal aerobic exercise is especially effective for those with high carbohydrate metabolism risk — burning the post-meal blood glucose surge prevents excess insulin secretion and stops sugar from converting to fat. Fasted exercise before breakfast is NOT recommended due to the risk of cortisol increase and muscle breakdown.</p>
+              <div class="bg-white rounded-lg p-2.5 border border-red-100">
+                <p class="text-[10px] font-bold text-navy-500 mb-1"><i class="fa-solid fa-bullseye text-red-500 mr-1"></i>Key Point</p>
+                <p class="text-[10px] text-gray-600 leading-relaxed">"A pace where you can hold a conversation" is the fat-burn zone indicator. A 30-minute post-meal walk is most efficient.</p>
+              </div>
+            </div>
+            <div class="bg-gray-50 rounded-xl p-3 mb-2">
+              <p class="text-[10px] font-bold text-navy-500 mb-2"><i class="fa-solid fa-list-check mr-1"></i>Action Steps</p>
+              <div class="space-y-2">
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">1</span>
+                  <p class="text-[10px] text-gray-600">Step outside 30 minutes after eating</p>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">2</span>
+                  <p class="text-[10px] text-gray-600">Walk at a pace where you're slightly breathless but can still talk</p>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">3</span>
+                  <p class="text-[10px] text-gray-600">Aim for 15-30 minutes (extend as you get comfortable)</p>
+                </div>
+              </div>
+            </div>
+            <p class="text-[10px] text-red-600 font-bold"><i class="fa-solid fa-dna mr-1"></i>Related genes: UCP1, ADRB3 (Fat Storage [Slight], Carb Metabolism [High])</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 運動-2 DANGER: 筋力トレーニング（筋肉量維持） -->
+      <div class="glass rounded-2xl shadow-md overflow-hidden card-hover border-l-4 border-red-400">
+        <button onclick="toggleInOut(this)" class="w-full flex items-center justify-between p-4 text-left">
+          <span class="text-xs font-bold text-navy-500 pr-2">2. Strength Training (Muscle Mass Maintenance)</span>
+          <span class="text-[8px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full border border-red-200 flex-shrink-0">Needs Improvement</span>
+          <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0" style="transform: rotate(180deg)"></i>
+        </button>
+        <div class="inout-answer open">
+          <div class="px-4 pb-4">
+            <div class="rounded-xl overflow-hidden mb-3 shadow-sm">
+              <img src="img/strength.jpg" alt="Strength training" class="w-full h-36 object-cover" loading="lazy">
+            </div>
+            <div class="bg-red-50/40 rounded-xl p-3 mb-3">
+              <h4 class="text-[11px] font-bold text-red-700 mb-2"><i class="fa-solid fa-dumbbell mr-1"></i>Diet Without Strength Training = "30% Muscle Loss"</h4>
+              <p class="text-xs text-gray-600 leading-relaxed mb-3">Maintaining muscle mass during a diet is the most important factor for preventing rebound. When reducing weight through diet alone, approximately 25-30% of the weight lost comes from muscle loss, lowering basal metabolism and making rebound more likely. Combining strength training limits muscle loss to a minimum (under 5-10%) while prioritizing fat loss. For those with high carbohydrate metabolism risk, muscles serve as a "glucose sponge" — maintaining muscle mass preserves the capacity to process dietary carbohydrates. Beginners should start with bodyweight exercises, focusing on large muscle groups (legs, back, chest), stimulating each area twice a week.</p>
+              <div class="bg-white rounded-lg p-2.5 border border-red-100">
+                <p class="text-[10px] font-bold text-navy-500 mb-1"><i class="fa-solid fa-bullseye text-red-500 mr-1"></i>Key Point</p>
+                <p class="text-[10px] text-gray-600 leading-relaxed">Dieting without strength training means "30% of what you lose is muscle." Always pair diet with strength training.</p>
+              </div>
+            </div>
+            <div class="bg-gray-50 rounded-xl p-3 mb-2">
+              <p class="text-[10px] font-bold text-navy-500 mb-2"><i class="fa-solid fa-list-check mr-1"></i>Action Steps</p>
+              <div class="space-y-2">
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">1</span>
+                  <p class="text-[10px] text-gray-600">Start with 3 exercises: squats, push-ups, and planks</p>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">2</span>
+                  <p class="text-[10px] text-gray-600">10 reps × 2 sets each, 2-3 times per week</p>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[9px] font-bold flex items-center justify-center flex-shrink-0">3</span>
+                  <p class="text-[10px] text-gray-600">Consume 20g of protein within 30 minutes after training</p>
+                </div>
+              </div>
+            </div>
+            <p class="text-[10px] text-red-600 font-bold"><i class="fa-solid fa-dna mr-1"></i>Related genes: ACTN3, MSTN, IGF1 (Protein Utilization [Slight], Carb Metabolism [High])</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary card for SAFE items -->
+      <div class="mt-4 bg-emerald-50/60 rounded-xl p-3 border border-emerald-200">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-circle-check text-emerald-500 text-sm"></i>
+          <div>
+            <p class="text-[11px] font-bold text-emerald-700">Other categories are in good condition</p>
+            <p class="text-[9px] text-gray-500">For items related to fat storage, protein utilization, and inflammation susceptibility, maintain your current lifestyle habits.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider mb-8"></div>
+
+  <!-- ========================================= -->
+  <!-- 5.5. 裏ワザ＆落とし穴（高リスク項目のみ） -->
+  <!-- ========================================= -->
+  <section class="mb-8">
+    <div class="flex items-center gap-3 mb-1">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-red-500 flex items-center justify-center shadow"><i class="fa-solid fa-lightbulb text-white text-sm"></i></div>
+      <div>
+        <h2 class="text-base font-black text-navy-500">Pro Tips &amp; Common Pitfalls</h2>
+        <p class="text-[10px] text-gray-400">Surprising blind spots and quick techniques related to your high-risk categories</p>
+      </div>
+    </div>
+    <p class="text-xs text-gray-500 mb-4 ml-12">What you thought was healthy might actually be counterproductive. Check genetic pitfalls and pro tips.</p>
+
+    <!-- ===== 糖質代謝 [High] の落とし穴＆裏ワザ ===== -->
+    <div class="mb-3">
+      <div class="flex items-center gap-2 mb-3 px-1">
+        <span class="text-[10px] font-black text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full border border-orange-200"><i class="fa-solid fa-cubes-stacked mr-1"></i>Carbohydrate Metabolism Risk — Tips</span>
+        <div class="flex-1 h-px bg-orange-100"></div>
+      </div>
+
+      <div class="space-y-2.5">
+        <!-- 落とし穴1 -->
+        <div class="rounded-2xl shadow-md overflow-hidden card-hover border-l-4 border-red-400 bg-white">
+          <button onclick="toggleInOut(this)" class="w-full flex items-center justify-between p-4 text-left">
+            <div class="flex items-center gap-2 pr-2">
+              <span class="text-[9px] font-black text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-200 flex-shrink-0">Pitfall</span>
+              <span class="text-xs font-bold text-navy-500">Is Relying on "Zero-Carb" Products Safe?</span>
+            </div>
+            <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0"></i>
+          </button>
+          <div class="inout-answer">
+            <div class="px-4 pb-4">
+              <div class="rounded-xl overflow-hidden mb-3 shadow-sm relative">
+                <img src="img/zero-sugar.jpg" alt="Zero-carb food products" class="w-full h-32 object-cover brightness-90" loading="lazy">
+                <div class="absolute top-2 left-2 bg-red-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow"><i class="fa-solid fa-ban mr-1"></i>NG</div>
+              </div>
+              <div class="bg-red-50/40 rounded-xl p-3 mb-2">
+                <p class="text-xs text-gray-600 leading-relaxed mb-2">Eating large amounts of "zero-carb" or "low-carb" products without concern is the most common pitfall for those with high carbohydrate metabolism risk. In fact, many zero-carb products contain high amounts of artificial sweeteners or fat instead. Research has shown that artificial sweeteners can stimulate insulin secretion, paradoxically causing blood sugar fluctuations.</p>
+                <p class="text-[10px] text-red-500 font-bold"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Zero-carb ≠ no weight gain. Always check the ingredient label on the back.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 裏ワザ1 -->
+        <div class="rounded-2xl shadow-md overflow-hidden card-hover border-l-4 border-amber-400 bg-white">
+          <button onclick="toggleInOut(this)" class="w-full flex items-center justify-between p-4 text-left">
+            <div class="flex items-center gap-2 pr-2">
+              <span class="text-[9px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 flex-shrink-0">Pro Tip</span>
+              <span class="text-xs font-bold text-navy-500">Drink a Glass of "Vinegar Water" Before Meals</span>
+            </div>
+            <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0"></i>
+          </button>
+          <div class="inout-answer">
+            <div class="px-4 pb-4">
+              <div class="rounded-xl overflow-hidden mb-3 shadow-sm relative">
+                <img src="img/vinegar.jpg" alt="Vinegar drink" class="w-full h-32 object-cover" loading="lazy">
+                <div class="absolute top-2 left-2 bg-amber-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow"><i class="fa-solid fa-star mr-1"></i>GOOD</div>
+              </div>
+              <div class="bg-amber-50/40 rounded-xl p-3 mb-2">
+                <p class="text-xs text-gray-600 leading-relaxed mb-2">Research shows that simply drinking 1 tablespoon of apple cider vinegar diluted in water before meals can suppress post-meal blood glucose rises by ~20-30%. Acetic acid inhibits α-amylase (starch-digesting enzyme) activity, gently slowing carbohydrate digestion and absorption. This is one of the easiest and most immediately effective pro tips for those with high carbohydrate metabolism risk.</p>
+                <p class="text-[10px] text-amber-600 font-bold"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>1 tbsp apple cider vinegar + 150ml water → Drink 15 minutes before a meal!</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 落とし穴2 -->
+        <div class="rounded-2xl shadow-md overflow-hidden card-hover border-l-4 border-red-400 bg-white">
+          <button onclick="toggleInOut(this)" class="w-full flex items-center justify-between p-4 text-left">
+            <div class="flex items-center gap-2 pr-2">
+              <span class="text-[9px] font-black text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-200 flex-shrink-0">Pitfall</span>
+              <span class="text-xs font-bold text-navy-500">Eating Large Amounts of Fruit for Breakfast Because "It's Healthy"</span>
+            </div>
+            <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0"></i>
+          </button>
+          <div class="inout-answer">
+            <div class="px-4 pb-4">
+              <div class="rounded-xl overflow-hidden mb-3 shadow-sm relative">
+                <img src="img/fruits.jpg" alt="Excessive fruit consumption" class="w-full h-32 object-cover brightness-90" loading="lazy">
+                <div class="absolute top-2 left-2 bg-red-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow"><i class="fa-solid fa-ban mr-1"></i>NG</div>
+              </div>
+              <div class="bg-red-50/40 rounded-xl p-3 mb-2">
+                <p class="text-xs text-gray-600 leading-relaxed mb-2">While fruit has a healthy image, fructose is a sugar that is easily converted directly into triglycerides in the liver. Eating large amounts of fruit alone first thing in the morning on an empty stomach causes a sharp blood glucose spike and triggers heavy insulin secretion for those with high carbohydrate metabolism risk. Smoothies require even more caution — blending breaks down fiber, which accelerates sugar absorption.</p>
+                <p class="text-[10px] text-red-500 font-bold"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Fruit is best eaten in small amounts as an "after-meal dessert."</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 裏ワザ2 -->
+        <div class="rounded-2xl shadow-md overflow-hidden card-hover border-l-4 border-amber-400 bg-white">
+          <button onclick="toggleInOut(this)" class="w-full flex items-center justify-between p-4 text-left">
+            <div class="flex items-center gap-2 pr-2">
+              <span class="text-[9px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 flex-shrink-0">Pro Tip</span>
+              <span class="text-xs font-bold text-navy-500">Simple Blood Sugar Hack: Mix "Mochi Barley" into White Rice</span>
+            </div>
+            <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0"></i>
+          </button>
+          <div class="inout-answer">
+            <div class="px-4 pb-4">
+              <div class="rounded-xl overflow-hidden mb-3 shadow-sm relative">
+                <img src="img/barley.jpg" alt="Mochi barley rice" class="w-full h-32 object-cover" loading="lazy">
+                <div class="absolute top-2 left-2 bg-amber-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow"><i class="fa-solid fa-star mr-1"></i>GOOD</div>
+              </div>
+              <div class="bg-amber-50/40 rounded-xl p-3 mb-2">
+                <p class="text-xs text-gray-600 leading-relaxed mb-2">Research shows that simply cooking rice with 30% mochi barley (waxy barley) mixed in can suppress post-meal blood glucose rises by ~25%. The β-glucan (soluble dietary fiber) in mochi barley forms a gel in the digestive tract, physically blocking carbohydrate absorption. The texture is pleasant and slightly chewy — it can be enjoyed by the whole family with no special cooking skills needed.</p>
+                <p class="text-[10px] text-amber-600 font-bold"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>Cook 2 cups white rice + 1 cup mochi barley together. Freeze leftovers!</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 満腹感/食欲制御 [High] の落とし穴＆裏ワザ ===== -->
+    <div class="mt-5">
+      <div class="flex items-center gap-2 mb-3 px-1">
+        <span class="text-[10px] font-black text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full border border-orange-200"><i class="fa-solid fa-utensils mr-1"></i>Satiety / Appetite Regulation Risk — Tips</span>
+        <div class="flex-1 h-px bg-orange-100"></div>
+      </div>
+
+      <div class="space-y-2.5">
+        <!-- 落とし穴3 -->
+        <div class="rounded-2xl shadow-md overflow-hidden card-hover border-l-4 border-red-400 bg-white">
+          <button onclick="toggleInOut(this)" class="w-full flex items-center justify-between p-4 text-left">
+            <div class="flex items-center gap-2 pr-2">
+              <span class="text-[9px] font-black text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-200 flex-shrink-0">Pitfall</span>
+              <span class="text-xs font-bold text-navy-500">"Just Endure Hunger" is the Worst Strategy</span>
+            </div>
+            <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0"></i>
+          </button>
+          <div class="inout-answer">
+            <div class="px-4 pb-4">
+              <div class="rounded-xl overflow-hidden mb-3 shadow-sm relative">
+                <img src="img/hunger.jpg" alt="Enduring hunger" class="w-full h-32 object-cover brightness-90" loading="lazy">
+                <div class="absolute top-2 left-2 bg-red-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow"><i class="fa-solid fa-ban mr-1"></i>NG</div>
+              </div>
+              <div class="bg-red-50/40 rounded-xl p-3 mb-2">
+                <p class="text-xs text-gray-600 leading-relaxed mb-2">When those with high satiety risk endure hunger, ghrelin (hunger hormone) is excessively secreted, leading directly to binge eating at the next meal. Since leptin (satiety hormone) signaling is genetically weak, once eating starts it's hard to stop — resulting in consuming far more calories than were saved by enduring. The negative cycle of "endure → binge → guilt" is the biggest enemy.</p>
+                <p class="text-[10px] text-red-500 font-bold"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Never endure hunger. "Eating strategically" is the correct approach.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 裏ワザ3 -->
+        <div class="rounded-2xl shadow-md overflow-hidden card-hover border-l-4 border-amber-400 bg-white">
+          <button onclick="toggleInOut(this)" class="w-full flex items-center justify-between p-4 text-left">
+            <div class="flex items-center gap-2 pr-2">
+              <span class="text-[9px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 flex-shrink-0">Pro Tip</span>
+              <span class="text-xs font-bold text-navy-500">Start Every Meal with a "Protein Bomb"</span>
+            </div>
+            <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0"></i>
+          </button>
+          <div class="inout-answer">
+            <div class="px-4 pb-4">
+              <div class="rounded-xl overflow-hidden mb-3 shadow-sm relative">
+                <img src="img/protein-meal.jpg" alt="Protein-rich meal" class="w-full h-32 object-cover" loading="lazy">
+                <div class="absolute top-2 left-2 bg-amber-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow"><i class="fa-solid fa-star mr-1"></i>GOOD</div>
+              </div>
+              <div class="bg-amber-50/40 rounded-xl p-3 mb-2">
+                <p class="text-xs text-gray-600 leading-relaxed mb-2">Eating protein-rich foods first (boiled eggs, grilled chicken, tofu, etc.) stimulates the release of GLP-1 (satiety hormone) and PYY (appetite-suppressing hormone). Research shows that consuming protein at the start of a meal reduces total calorie intake by ~15-20%. For those with high satiety risk, this is the most effective strategy to compensate for weak leptin signaling with GLP-1.</p>
+                <p class="text-[10px] text-amber-600 font-bold"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>Build the habit of consuming 20g of protein in the first 5 minutes of every meal!</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 落とし穴4 -->
+        <div class="rounded-2xl shadow-md overflow-hidden card-hover border-l-4 border-red-400 bg-white">
+          <button onclick="toggleInOut(this)" class="w-full flex items-center justify-between p-4 text-left">
+            <div class="flex items-center gap-2 pr-2">
+              <span class="text-[9px] font-black text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-200 flex-shrink-0">Pitfall</span>
+              <span class="text-xs font-bold text-navy-500">Distracted Eating Stops Your Brain from Registering the Meal</span>
+            </div>
+            <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0"></i>
+          </button>
+          <div class="inout-answer">
+            <div class="px-4 pb-4">
+              <div class="rounded-xl overflow-hidden mb-3 shadow-sm relative">
+                <img src="img/nagara-eating.jpg" alt="Distracted eating" class="w-full h-32 object-cover brightness-90" loading="lazy">
+                <div class="absolute top-2 left-2 bg-red-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow"><i class="fa-solid fa-ban mr-1"></i>NG</div>
+              </div>
+              <div class="bg-red-50/40 rounded-xl p-3 mb-2">
+                <p class="text-xs text-gray-600 leading-relaxed mb-2">Eating while looking at a smartphone or watching TV is particularly dangerous for those with high satiety risk. When attention is divided, the brain fails to properly register the meal, further delaying satiety signals. Research reports that eating while watching TV increases calorie intake by ~25-50%. For those already genetically predisposed to weak satiety signals, the effect is doubled.</p>
+                <p class="text-[10px] text-red-500 font-bold"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Flip your phone face-down during meals. This simple habit can prevent overeating.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 裏ワザ4 -->
+        <div class="rounded-2xl shadow-md overflow-hidden card-hover border-l-4 border-amber-400 bg-white">
+          <button onclick="toggleInOut(this)" class="w-full flex items-center justify-between p-4 text-left">
+            <div class="flex items-center gap-2 pr-2">
+              <span class="text-[9px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 flex-shrink-0">Pro Tip</span>
+              <span class="text-xs font-bold text-navy-500">Hack Your Brain with "Smaller Plates &amp; Chopstick Rests"</span>
+            </div>
+            <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0"></i>
+          </button>
+          <div class="inout-answer">
+            <div class="px-4 pb-4">
+              <div class="rounded-xl overflow-hidden mb-3 shadow-sm relative">
+                <img src="img/small-plate.jpg" alt="Eating with a small plate" class="w-full h-32 object-cover" loading="lazy">
+                <div class="absolute top-2 left-2 bg-amber-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow"><i class="fa-solid fa-star mr-1"></i>GOOD</div>
+              </div>
+              <div class="bg-amber-50/40 rounded-xl p-3 mb-2">
+                <p class="text-xs text-gray-600 leading-relaxed mb-2">Leveraging the Delboeuf illusion (the same amount of food looks more on a smaller plate), research shows that simply using a slightly smaller plate can reduce food consumption by ~20%. Additionally, using "chopstick rests" and placing chopsticks down after each bite naturally extends meal duration, allowing delayed satiety signals to catch up during the meal. This is the laziest pro tip — just change your tools to control your appetite.</p>
+                <p class="text-[10px] text-amber-600 font-bold"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>Use a smaller plate + chopstick rests. An appetite hack you can start today!</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider mb-8"></div>
+
+  <!-- ========================================= -->
+  <!-- 6. FAQ（アコーディオン） -->
+  <!-- ========================================= -->
+  <section class="mb-8">
+    <h2 class="flex items-center gap-2 text-base font-black text-navy-500 mb-4">
+      <div class="w-7 h-7 rounded-lg gradient-navy flex items-center justify-center"><i class="fa-solid fa-circle-question text-gold-400 text-xs"></i></div>
+      Frequently Asked Questions
+    </h2>
+
+    <div class="space-y-3">
+      <!-- Q1 -->
+      <div class="glass rounded-2xl shadow-md overflow-hidden card-hover">
+        <button onclick="toggleFaq(this)" class="w-full flex items-center justify-between p-4 text-left">
+          <div class="flex items-start gap-3">
+            <span class="bg-navy-500 text-gold-400 text-[10px] font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0">Q1</span>
+            <span class="text-xs font-bold text-navy-500 pr-2">Why do I gain weight when eating the same food as my family?</span>
+          </div>
+          <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0"></i>
+        </button>
+        <div class="faq-answer">
+          <div class="px-4 pb-4 pl-[52px]">
+            <p class="text-xs text-gray-600 leading-relaxed bg-navy-50/50 rounded-xl p-3">
+              <span class="text-navy-500 font-bold">A.</span> Everyone's genetic capacity to process macronutrients (PFC balance) differs. In your case, risk variants have been confirmed in carbohydrate metabolism genes TCF7L2 and KCNQ1, meaning your blood glucose rises faster than average with the same meal, and excess sugar converts to fat more readily. Even at the same family dinner table, you need a genetically-tailored eating approach: reducing rice portions, increasing side dishes, and changing meal order.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q2 -->
+      <div class="glass rounded-2xl shadow-md overflow-hidden card-hover">
+        <button onclick="toggleFaq(this)" class="w-full flex items-center justify-between p-4 text-left">
+          <div class="flex items-start gap-3">
+            <span class="bg-navy-500 text-gold-400 text-[10px] font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0">Q2</span>
+            <span class="text-xs font-bold text-navy-500 pr-2">Is carbohydrate-restriction dieting right for me?</span>
+          </div>
+          <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0"></i>
+        </button>
+        <div class="faq-answer">
+          <div class="px-4 pb-4 pl-[52px]">
+            <p class="text-xs text-gray-600 leading-relaxed bg-navy-50/50 rounded-xl p-3">
+              <span class="text-navy-500 font-bold">A.</span> Extreme carbohydrate restriction (e.g., ketogenic diets) is not recommended. Given your genetic tendencies, completely cutting carbs leads to muscle breakdown and reduced basal metabolism, which causes rebound weight gain. The recommended approach is "gentle carb management": adjust carbohydrate intake to 40-60g per meal and choose low-GI foods (brown rice, barley rice, whole wheat bread) to prevent sharp blood glucose spikes while ensuring adequate energy.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q3 -->
+      <div class="glass rounded-2xl shadow-md overflow-hidden card-hover">
+        <button onclick="toggleFaq(this)" class="w-full flex items-center justify-between p-4 text-left">
+          <div class="flex items-start gap-3">
+            <span class="bg-navy-500 text-gold-400 text-[10px] font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0">Q3</span>
+            <span class="text-xs font-bold text-navy-500 pr-2">Is constant hunger a sign of weak willpower?</span>
+          </div>
+          <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0"></i>
+        </button>
+        <div class="faq-answer">
+          <div class="px-4 pb-4 pl-[52px]">
+            <p class="text-xs text-gray-600 leading-relaxed bg-navy-50/50 rounded-xl p-3">
+              <span class="text-navy-500 font-bold">A.</span> It is not a matter of weak willpower. Risk variants in your MC4R and LEPR genes mean that satiety hormone (leptin) signals are less effectively transmitted to the brain — your brain simply receives the "I've eaten enough" signal later than others. This is an innate physical trait; there is absolutely no reason to blame yourself. You can address it through environmental design: consuming protein first at meals, chewing thoroughly, and using smaller plates.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q4 -->
+      <div class="glass rounded-2xl shadow-md overflow-hidden card-hover">
+        <button onclick="toggleFaq(this)" class="w-full flex items-center justify-between p-4 text-left">
+          <div class="flex items-start gap-3">
+            <span class="bg-navy-500 text-gold-400 text-[10px] font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0">Q4</span>
+            <span class="text-xs font-bold text-navy-500 pr-2">Will these genetic results remain the same for life?</span>
+          </div>
+          <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0"></i>
+        </button>
+        <div class="faq-answer">
+          <div class="px-4 pb-4 pl-[52px]">
+            <p class="text-xs text-gray-600 leading-relaxed bg-navy-50/50 rounded-xl p-3">
+              <span class="text-navy-500 font-bold">A.</span> Yes, the DNA sequence itself never changes throughout life. This report is your lifelong "body owner's manual." However, genes do not determine "destiny." Epigenetics research (post-natal gene expression regulation) has revealed that lifestyle habits — diet, exercise, sleep — can "switch off" risk genes. Knowing the right countermeasures is the first step to overcoming genetic weaknesses.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q5 -->
+      <div class="glass rounded-2xl shadow-md overflow-hidden card-hover">
+        <button onclick="toggleFaq(this)" class="w-full flex items-center justify-between p-4 text-left">
+          <div class="flex items-start gap-3">
+            <span class="bg-navy-500 text-gold-400 text-[10px] font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0">Q5</span>
+            <span class="text-xs font-bold text-navy-500 pr-2">What is the difference between "BMR" and "TDEE"?</span>
+          </div>
+          <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0"></i>
+        </button>
+        <div class="faq-answer">
+          <div class="px-4 pb-4 pl-[52px]">
+            <div class="text-xs text-gray-600 leading-relaxed bg-navy-50/50 rounded-xl p-3">
+              <p class="mb-2"><span class="text-navy-500 font-bold">A.</span> The <span class="font-bold text-navy-500">BMR (Basal Metabolic Rate)</span> shown in this report is the calories your body burns at complete rest, calculated from your physical data (sex, weight, height, age). Like your lifelong genetic data, it is a <span class="font-bold">static figure</span> based on a formula.</p>
+              <p class="mb-2">For actual weight management, what matters is your <span class="font-bold text-zuboran-500">TDEE (Total Daily Energy Expenditure)</span>. This multiplies your BMR by your daily activity level (commuting, housework, exercise, etc.) and <span class="font-bold">changes every day</span>.</p>
+              <div class="bg-white rounded-lg p-2 mt-2 border border-gray-100">
+                <p class="text-[10px] text-gray-500 mb-1"><span class="font-bold">BMR Formula (Harris-Benedict)</span></p>
+                <p class="text-[9px] text-gray-400">Male: 88.362 + (13.397 × weight kg) + (4.799 × height cm) - (5.677 × age)</p>
+                <p class="text-[9px] text-gray-400">Female: 447.593 + (9.247 × weight kg) + (3.098 × height cm) - (4.330 × age)</p>
+                <p class="text-[10px] text-gray-500 mt-1.5"><span class="font-bold">TDEE</span> = BMR × Activity Factor (1.2–1.9)</p>
+              </div>
+              <p class="mt-2 text-[10px] text-zuboran-500 font-bold"><i class="fa-solid fa-arrow-right mr-1"></i>Automatic TDEE calculation and daily calorie targets are handled by the Lazy Diet App!</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q6 -->
+      <div class="glass rounded-2xl shadow-md overflow-hidden card-hover">
+        <button onclick="toggleFaq(this)" class="w-full flex items-center justify-between p-4 text-left">
+          <div class="flex items-start gap-3">
+            <span class="bg-navy-500 text-gold-400 text-[10px] font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0">Q6</span>
+            <span class="text-xs font-bold text-navy-500 pr-2">How many grams of each food should I eat every day, exactly?</span>
+          </div>
+          <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300 flex-shrink-0"></i>
+        </button>
+        <div class="faq-answer">
+          <div class="px-4 pb-4 pl-[52px]">
+            <p class="text-xs text-gray-600 leading-relaxed bg-navy-50/50 rounded-xl p-3">
+              <span class="text-navy-500 font-bold">A.</span> This report is your <span class="font-bold">body owner's manual</span> that reveals your genetic weaknesses. For the specific daily food calculations (how many grams of what to eat), please rely on the dedicated <span class="font-bold text-zuboran-500">Lazy Diet App</span>, which updates daily based on your TDEE!
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================= -->
+  <!-- 7. App Integration CTA — Avatar Evolution -->
+  <!-- ========================================= -->
+  <section class="mb-12">
+    <div class="relative rounded-2xl overflow-hidden shadow-2xl">
+      <div class="gradient-navy p-6 pb-8 relative overflow-hidden">
+        <div class="shimmer absolute inset-0"></div>
+        <div class="relative z-10">
+
+          <!-- Header -->
+          <div class="flex items-center justify-center gap-2 mb-4">
+            <i class="fa-solid fa-wand-magic-sparkles text-gold-400 text-lg"></i>
+            <h3 class="text-white font-bold text-base">Download the Lazy Diet App — Watch Your Avatar Evolve!</h3>
+          </div>
+
+          <!-- Before / After -->
+          <div class="flex items-center justify-center gap-4 mb-5">
+            <div class="text-center">
+              <div class="w-16 h-16 rounded-full bg-white/10 overflow-hidden mb-1 ring-2 ring-white/20">
+                <img src="img/avatar.png" alt="Before" class="w-full h-full object-cover" style="object-position: 25% center;">
+              </div>
+              <span class="text-[10px] text-white/50">Before</span>
+            </div>
+            <div class="flex flex-col items-center gap-1">
+              <i class="fa-solid fa-arrow-right text-gold-400 text-xl"></i>
+              <span class="text-[9px] text-gold-400 font-bold">EVOLUTION</span>
+            </div>
+            <div class="text-center">
+              <div class="w-16 h-16 rounded-full bg-gold-400/20 overflow-hidden mb-1 ring-2 ring-gold-400/40 float">
+                <img src="img/avatar.png" alt="After" class="w-full h-full object-cover" style="object-position: 75% center;">
+              </div>
+              <span class="text-[10px] text-gold-300">After</span>
+            </div>
+          </div>
+
+          <p class="text-center text-xs text-white/70 mb-2 leading-relaxed">
+            As you follow a diet and lifestyle tailored to your genes,<br>your avatar gradually transforms — growing healthier and more vibrant!
+          </p>
+          <p class="text-center text-[10px] text-gold-300 mb-5 leading-relaxed">
+            <i class="fa-solid fa-dna mr-1"></i>Your genetic data from AIGENO links directly to the Lazy Diet App.<br>The app calculates your daily calorie targets and suggests meals &amp; exercise — all on autopilot.
+          </p>
+
+          <!-- CTA Button -->
+          <a href="#" class="block w-full bg-gradient-to-r from-zuboran-500 to-zuboran-400 text-white text-center font-bold text-sm py-4 rounded-xl shadow-lg pulse-glow transition-all hover:scale-[1.02] active:scale-[0.98]">
+            <i class="fa-solid fa-link mr-1.5"></i>[Free] Connect with the Lazy Diet App
+          </a>
+          <p class="text-center text-[10px] text-white/40 mt-2">
+            <i class="fa-solid fa-shield-halved mr-1"></i>Your personal data is encrypted and securely managed.
+          </p>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- フッター -->
+  <footer class="text-center pb-8">
+    <div class="flex items-center justify-center gap-2 mb-2">
+      <div class="w-5 h-5 rounded gradient-gold flex items-center justify-center">
+        <span class="text-navy-800 font-black text-[8px] font-display">Ai</span>
+      </div>
+      <span class="text-xs font-bold text-navy-500 tracking-widest">AIGENO</span>
+    </div>
+    <p class="text-[10px] text-gray-400">&copy; 2026 SCL AIOMICS Inc. All rights reserved.</p>
+  </footer>
+
+</main>
+
+<!-- ============================== -->
+<!-- Scripts -->
+<!-- ============================== -->
+<script>
+// Radar Chart
+const ctx = document.getElementById('radarChart').getContext('2d');
+new Chart(ctx, {
+  type: 'radar',
+  data: {
+    labels: ['Carbohydrate Metabolism', 'Fat Storage', 'Protein Utilization', 'Satiety / Appetite', 'Inflammation'],
+    datasets: [{
+      label: 'Your Risk',
+      data: [82, 40, 33, 76, 61],
+      backgroundColor: 'rgba(232, 189, 84, 0.2)',
+      borderColor: '#c9a84c',
+      borderWidth: 2,
+      pointBackgroundColor: '#c9a84c',
+      pointBorderColor: '#fff',
+      pointBorderWidth: 2,
+      pointRadius: 5
+    }, {
+      label: 'Population Average',
+      data: [50, 50, 50, 50, 50],
+      backgroundColor: 'rgba(26, 39, 68, 0.05)',
+      borderColor: 'rgba(26, 39, 68, 0.3)',
+      borderWidth: 1,
+      borderDash: [5, 5],
+      pointRadius: 0
+    }]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      r: {
+        beginAtZero: true,
+        max: 100,
+        ticks: { display: false, stepSize: 25 },
+        grid: { color: 'rgba(26, 39, 68, 0.08)' },
+        pointLabels: {
+          font: { size: 10, family: 'Noto Sans JP', weight: '700' },
+          color: '#1a2744'
+        }
+      }
+    },
+    plugins: {
+      legend: { display: false }
+    }
+  }
+});
+
+// Accordion functions
+function toggleInOut(btn) {
+  const answer = btn.nextElementSibling;
+  const icon = btn.querySelector('.fa-chevron-down');
+  answer.classList.toggle('open');
+  icon.style.transform = answer.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
+}
+
+function toggleFaq(btn) {
+  const answer = btn.nextElementSibling;
+  const icon = btn.querySelector('.fa-chevron-down');
+  answer.classList.toggle('open');
+  icon.style.transform = answer.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
+}
+
+function toggleDetail(btn) {
+  const answer = btn.nextElementSibling;
+  const icon = btn.querySelector('.fa-chevron-down');
+  answer.classList.toggle('open');
+  icon.style.transform = answer.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
+}
+
+function toggleAbout(btn) {
+  const answer = btn.nextElementSibling;
+  const icon = btn.querySelector('.fa-chevron-down');
+  answer.classList.toggle('open');
+  icon.style.transform = answer.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
+}
+</script>
+
+</body>
+</html>
